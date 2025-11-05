@@ -1,0 +1,97 @@
+!***************************************
+!AVL input file generated from nTop geometry
+!***************************************
+nTop Geometry
+!Mach
+ 0.000
+!IYsym   IZsym   Zsym
+ 0       0       0.000
+!Sref    Cref    Bref
+212.360584     12.798398     23.868525
+!Xref    Yref    Zref
+8.899710     0.000000     0.513617
+
+SURFACE
+WING
+!Nchordwise  Cspace
+8            1.0
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+17.620626    -11.934263    1.254342    0.235717   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+16.822592    -10.983210    1.154382    3.469924   0.000   11          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+12.056628    -5.370418    0.564454    7.288953   0.000   7          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+6.503617    -1.737951    0.182666    14.967140   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+3.321256    -1.158634    0.121777    18.908450   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+1.512427    -0.579317    0.060889    20.756012   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+0.021935    0.000000    0.000000    22.400777   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+1.512427    0.579317    0.060889    20.756012   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+3.321256    1.158634    0.121777    18.908450   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+6.503617    1.737951    0.182666    14.967140   0.000   7          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+12.056628    5.370418    0.564454    7.288953   0.000   11          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+16.822592    10.983210    1.154382    3.469924   0.000   3          1.000
+NACA
+2412
+
+SECTION
+!Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+17.620626    11.934263    1.254342    0.235717   0.000   0          1.000
+NACA
+2412
+
+END

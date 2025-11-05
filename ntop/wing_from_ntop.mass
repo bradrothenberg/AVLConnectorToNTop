@@ -1,0 +1,23 @@
+#
+#  nTop Geometry Mass & Inertia breakdown
+#
+#  xyz is location of item's own CG
+#  Ixx.. are item's inertias about item's own CG
+#
+#   x back
+#   y right
+#   z up
+#
+#  x,y,z system here must have origin 
+#  at same location as AVL input file
+#
+Lunit = 1.0 ft
+Munit = 1.0 slug
+Tunit = 1.0 s
+
+g   = 32.174
+rho = 0.0023769
+
+#
+#  mass   x     y     z       Ixx     Iyy    Izz   [ Ixy  Ixz  Iyz ]
+ 252.906  11.954842  0.0  0.628031   0.0   0.0   0.0

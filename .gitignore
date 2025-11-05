@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.settings/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AVL temporary files
+*.st
+*.eig
+*.sys
+*.es
+*.sb
+*.fe
+*.fn
+*.fs
+*.ft
+*.hm
+*.re
+*.vm
+*.cpom
+*.cpoml
+*.mrf
+*.mrf.*
+
+# Compiled binaries (keep AVL executables but ignore compiled Python)
+*.exe
+*.dll
+!binw32/*.exe
+!bin/*.exe
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+ntop_to_avl_temp.py
+
+# User data (keep structure but ignore content that changes frequently)
+# Uncomment if you want to ignore point data files:
+# ntop/*.csv
+
