@@ -191,19 +191,19 @@ def _compute_target_rectangles() -> Tuple[WindowPlacement, WindowPlacement]:
 
     right_half_left = screen_width // 2
     right_half_width = screen_width - right_half_left
-    mid_point = right_half_left + right_half_width // 2
+    half_height = screen_height // 2
 
     geometry_rect = WindowPlacement(
         left=right_half_left,
         top=0,
-        width=mid_point - right_half_left,
-        height=screen_height,
+        width=right_half_width,
+        height=half_height,
     )
     trefftz_rect = WindowPlacement(
-        left=mid_point,
-        top=0,
-        width=screen_width - mid_point,
-        height=screen_height,
+        left=right_half_left,
+        top=half_height,
+        width=right_half_width,
+        height=screen_height - half_height,
     )
 
     return geometry_rect, trefftz_rect
