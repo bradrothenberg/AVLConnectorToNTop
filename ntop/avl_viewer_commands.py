@@ -224,8 +224,10 @@ class AVLViewerOrchestrator:
             "G",
             "V",
             "-90 -90",
+            "U",
             "",
             "T",
+            "U",
         ]
 
         command_text = "\n".join(command_lines) + "\n"
@@ -251,6 +253,7 @@ class AVLViewerOrchestrator:
             "G",
             "V",
             "-90 -90",
+            "U",
             "",
         ]
 
@@ -275,6 +278,7 @@ class AVLViewerOrchestrator:
             "1",
             "X",
             "T",
+            "U",
         ]
 
         command_text = "\n".join(command_lines) + "\n"

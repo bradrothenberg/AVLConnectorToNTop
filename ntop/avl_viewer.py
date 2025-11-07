@@ -222,9 +222,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             "G",
             "V",
             "-90 -90",
+            "U",
             "",
         ]) + "\n"
-        trefftz_refresh_commands = "\nT\n\n"
+        trefftz_refresh_commands = "\nT\nU\n\n"
 
         try:
             if geometry_process.stdin:
