@@ -214,6 +214,28 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         LOGGER.info("Windows will remain open for viewing. Close manually when done.")
 
+        # Allow time for window manager to reposition windows before refreshing plots
+        time.sleep(1.0)
+
+        geometry_refresh_commands = "\n\nG\nV\n90 90\n\n"
+        trefftz_refresh_commands = "\nT\n\n"
+
+        try:
+            if geometry_process.stdin:
+                geometry_process.stdin.write(geometry_refresh_commands)
+                geometry_process.stdin.flush()
+        except Exception as exc:
+            LOGGER.warning("Failed to refresh geometry plot after resize: %s", exc)
+
+        time.sleep(0.3)
+
+        try:
+            if trefftz_process.stdin:
+                trefftz_process.stdin.write(trefftz_refresh_commands)
+                trefftz_process.stdin.flush()
+        except Exception as exc:
+            LOGGER.warning("Failed to refresh Trefftz plot after resize: %s", exc)
+
         # Give processes time to initialize and open windows
         # Check that processes are still running after a brief delay
         time.sleep(3.0)

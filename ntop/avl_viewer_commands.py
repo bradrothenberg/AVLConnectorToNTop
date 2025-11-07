@@ -223,8 +223,7 @@ class AVLViewerOrchestrator:
             "X",
             "G",
             "V",
-            "90",
-            "90",
+            "90 90",
             "",
             "T",
         ]
@@ -251,8 +250,7 @@ class AVLViewerOrchestrator:
             "X",
             "G",
             "V",
-            "90",
-            "90",
+            "90 90",
             "",
         ]
 
