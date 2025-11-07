@@ -145,27 +145,56 @@ def main(argv: Optional[list[str]] = None) -> int:
             mach=args.mach,
             avl_executable=args.avl_exe,
         )
-        command_script = orchestrator.prepare()
+        orchestrator.prepare()
 
-        LOGGER.info("Launching AVL with command script: %s", command_script)
-        launch_cmd = orchestrator.build_avl_launch_command(command_script)
-        LOGGER.debug("AVL launch command: %s", launch_cmd)
+        LOGGER.info("Launching dual AVL instances for geometry and Trefftz plots")
+        launch_cmd = orchestrator.build_avl_launch_command(orchestrator.geometry_command_script)
 
-        with subprocess.Popen(
+        # Launch geometry plot instance
+        LOGGER.debug("Launching geometry AVL instance: %s", launch_cmd)
+        geometry_process = subprocess.Popen(
             launch_cmd,
             cwd=orchestrator.working_directory,
             stdin=subprocess.PIPE,
             text=True,
-        ) as process:
-            avl_window_control.manage_windows_async(pid=process.pid)
+        )
 
-            if process.stdin and orchestrator.command_input:
-                process.stdin.write(orchestrator.command_input)
-                process.stdin.flush()
+        # Launch Trefftz plot instance
+        LOGGER.debug("Launching Trefftz AVL instance: %s", launch_cmd)
+        trefftz_process = subprocess.Popen(
+            launch_cmd,
+            cwd=orchestrator.working_directory,
+            stdin=subprocess.PIPE,
+            text=True,
+        )
 
-            return_code = process.wait()
-            if return_code != 0:
-                raise RuntimeError(f"AVL process exited with code {return_code}")
+        # Start window management for both processes
+        avl_window_control.manage_windows_async(
+            geometry_pid=geometry_process.pid,
+            trefftz_pid=trefftz_process.pid,
+        )
+
+        # Send commands to geometry process
+        if geometry_process.stdin and orchestrator.geometry_command_input:
+            geometry_process.stdin.write(orchestrator.geometry_command_input)
+            geometry_process.stdin.flush()
+            geometry_process.stdin.close()
+
+        # Send commands to Trefftz process
+        if trefftz_process.stdin and orchestrator.trefftz_command_input:
+            trefftz_process.stdin.write(orchestrator.trefftz_command_input)
+            trefftz_process.stdin.flush()
+            trefftz_process.stdin.close()
+
+        LOGGER.info(
+            "Both AVL instances launched. Geometry PID: %s, Trefftz PID: %s",
+            geometry_process.pid,
+            trefftz_process.pid,
+        )
+        LOGGER.info("Windows will remain open for viewing. Close manually when done.")
+
+        # Don't wait for processes to exit - they stay open for viewing
+        # The processes will remain running until the user closes the windows
 
     except Exception as exc:  # pylint: disable=broad-except
         LOGGER.exception("Failed to launch AVL viewer: %s", exc)

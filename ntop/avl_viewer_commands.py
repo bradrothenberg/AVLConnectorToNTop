@@ -41,6 +41,10 @@ class AVLViewerOrchestrator:
     run_file: Optional[Path] = None
     command_script: Optional[Path] = None
     command_input: Optional[str] = None
+    geometry_command_script: Optional[Path] = None
+    geometry_command_input: Optional[str] = None
+    trefftz_command_script: Optional[Path] = None
+    trefftz_command_input: Optional[str] = None
 
     def prepare(self) -> Path:
         """Prepare all assets required to launch AVL."""
@@ -52,9 +56,13 @@ class AVLViewerOrchestrator:
 
         self.run_file = self.output_dir / f"{base_name}.run"
         self.command_script = self.output_dir / f"{base_name}.commands"
+        self.geometry_command_script = self.output_dir / f"{base_name}_geometry.commands"
+        self.trefftz_command_script = self.output_dir / f"{base_name}_trefftz.commands"
 
         self._generate_run_file()
         self.command_input = self._generate_command_script(base_name)
+        self.geometry_command_input = self._generate_geometry_command_script(base_name)
+        self.trefftz_command_input = self._generate_trefftz_command_script(base_name)
 
         return self.command_script
 
@@ -224,6 +232,56 @@ class AVLViewerOrchestrator:
         command_text = "\n".join(command_lines) + "\n"
         self.command_script.write_text(command_text, encoding="utf-8")
         LOGGER.info("Generated AVL command script: %s", self.command_script)
+        return command_text
+
+    def _generate_geometry_command_script(self, base_name: str) -> str:
+        """
+        Generate the AVL command script for geometry-only view.
+        Window stays open in display-only mode.
+        """
+        if self.geometry_command_script is None or self.run_file is None:
+            raise RuntimeError("Geometry command script/run file not initialised.")
+
+        command_lines = [
+            "CASE",
+            self.run_file.name,
+            "OPER",
+            "#",
+            "1",
+            "X",
+            "G",
+            "V",
+            "90",
+            "90",
+            "",
+        ]
+
+        command_text = "\n".join(command_lines) + "\n"
+        self.geometry_command_script.write_text(command_text, encoding="utf-8")
+        LOGGER.info("Generated geometry command script: %s", self.geometry_command_script)
+        return command_text
+
+    def _generate_trefftz_command_script(self, base_name: str) -> str:
+        """
+        Generate the AVL command script for Trefftz-only view.
+        Window stays open in display-only mode.
+        """
+        if self.trefftz_command_script is None or self.run_file is None:
+            raise RuntimeError("Trefftz command script/run file not initialised.")
+
+        command_lines = [
+            "CASE",
+            self.run_file.name,
+            "OPER",
+            "#",
+            "1",
+            "X",
+            "T",
+        ]
+
+        command_text = "\n".join(command_lines) + "\n"
+        self.trefftz_command_script.write_text(command_text, encoding="utf-8")
+        LOGGER.info("Generated Trefftz command script: %s", self.trefftz_command_script)
         return command_text
 
     # ------------------------------------------------------------------

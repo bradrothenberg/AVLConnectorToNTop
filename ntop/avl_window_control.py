@@ -48,7 +48,9 @@ class WindowPlacement:
 
 
 def manage_windows_async(
-    pid: Optional[int],
+    geometry_pid: Optional[int] = None,
+    trefftz_pid: Optional[int] = None,
+    pid: Optional[int] = None,
     timeout: float = 60.0,
     poll_interval: float = 0.5,
 ) -> None:
@@ -56,8 +58,10 @@ def manage_windows_async(
     Start a background watcher that repositions AVL graphics windows.
 
     Args:
-        pid: Process ID of the running AVL instance. If None or if running on
-             non-Windows platforms, the function becomes a no-op.
+        geometry_pid: Process ID of the AVL instance showing geometry plot.
+        trefftz_pid: Process ID of the AVL instance showing Trefftz plot.
+        pid: Legacy parameter for single-process mode (deprecated, use
+             geometry_pid/trefftz_pid instead).
         timeout: Maximum time (in seconds) spent searching for the windows.
         poll_interval: Interval (in seconds) between window enumerations.
     """
@@ -65,12 +69,22 @@ def manage_windows_async(
         LOGGER.info("Window management is only supported on Windows; skipping.")
         return
 
-    if pid is None:
-        LOGGER.warning("No process ID provided; unable to manage AVL windows.")
+    # Support legacy single-PID mode for backward compatibility
+    if pid is not None:
+        if geometry_pid is not None or trefftz_pid is not None:
+            LOGGER.warning(
+                "Both 'pid' and geometry_pid/trefftz_pid provided. Using geometry_pid/trefftz_pid."
+            )
+        else:
+            geometry_pid = pid
+
+    if geometry_pid is None and trefftz_pid is None:
+        LOGGER.warning("No process IDs provided; unable to manage AVL windows.")
         return
 
     watcher = _WindowWatcher(
-        pid=pid,
+        geometry_pid=geometry_pid,
+        trefftz_pid=trefftz_pid,
         timeout=timeout,
         poll_interval=poll_interval,
     )
@@ -82,18 +96,25 @@ class _WindowWatcher(threading.Thread):
 
     def __init__(
         self,
-        pid: int,
+        geometry_pid: Optional[int],
+        trefftz_pid: Optional[int],
         timeout: float,
         poll_interval: float,
     ) -> None:
         super().__init__(daemon=True, name="AVLWindowWatcher")
-        self._pid = pid
+        self._geometry_pid = geometry_pid
+        self._trefftz_pid = trefftz_pid
         self._timeout = timeout
         self._poll_interval = poll_interval
-        self._handled_windows: Set[int] = set()
+        self._geometry_window: Optional[int] = None
+        self._trefftz_window: Optional[int] = None
 
     def run(self) -> None:  # pragma: no cover - involves GUI interaction
-        LOGGER.debug("Starting AVL window watcher for PID %s", self._pid)
+        LOGGER.debug(
+            "Starting AVL window watcher - Geometry PID: %s, Trefftz PID: %s",
+            self._geometry_pid,
+            self._trefftz_pid,
+        )
         deadline = time.time() + self._timeout
 
         geometry_rect, trefftz_rect = _compute_target_rectangles()
@@ -104,46 +125,60 @@ class _WindowWatcher(threading.Thread):
         )
 
         while time.time() < deadline:
-            hwnds = _collect_process_windows(self._pid)
-            if not hwnds:
-                time.sleep(self._poll_interval)
-                continue
+            # Collect windows from geometry process
+            if self._geometry_pid is not None and self._geometry_window is None:
+                geometry_hwnds = _collect_process_windows(self._geometry_pid)
+                if geometry_hwnds:
+                    # Use the first graphics window found
+                    for hwnd in geometry_hwnds:
+                        if _move_window(hwnd, geometry_rect):
+                            self._geometry_window = hwnd
+                            LOGGER.info(
+                                "Positioned geometry window %s (PID %s) at %s",
+                                hex(hwnd),
+                                self._geometry_pid,
+                                geometry_rect,
+                            )
+                            break
 
-            for hwnd in hwnds:
-                if hwnd in self._handled_windows:
-                    continue
+            # Collect windows from Trefftz process
+            if self._trefftz_pid is not None and self._trefftz_window is None:
+                trefftz_hwnds = _collect_process_windows(self._trefftz_pid)
+                if trefftz_hwnds:
+                    # Use the first graphics window found
+                    for hwnd in trefftz_hwnds:
+                        if _move_window(hwnd, trefftz_rect):
+                            self._trefftz_window = hwnd
+                            LOGGER.info(
+                                "Positioned Trefftz window %s (PID %s) at %s",
+                                hex(hwnd),
+                                self._trefftz_pid,
+                                trefftz_rect,
+                            )
+                            break
 
-                target_rect = None
-                if len(self._handled_windows) == 0:
-                    target_rect = geometry_rect
-                elif len(self._handled_windows) == 1:
-                    target_rect = trefftz_rect
+            # Check if both windows are positioned
+            geometry_done = self._geometry_pid is None or self._geometry_window is not None
+            trefftz_done = self._trefftz_pid is None or self._trefftz_window is not None
 
-                if target_rect is None:
-                    # Additional windows (e.g., text console) are ignored.
-                    self._handled_windows.add(hwnd)
-                    continue
-
-                if _move_window(hwnd, target_rect):
-                    LOGGER.info(
-                        "Positioned window %s at %s", hex(hwnd), target_rect
-                    )
-                else:
-                    LOGGER.warning(
-                        "Failed to move window %s to %s", hex(hwnd), target_rect
-                    )
-                self._handled_windows.add(hwnd)
-
-            if len(self._handled_windows) >= 2:
-                LOGGER.debug("Both AVL windows have been positioned.")
+            if geometry_done and trefftz_done:
+                LOGGER.debug("All AVL windows have been positioned.")
                 return
 
             time.sleep(self._poll_interval)
 
-        LOGGER.warning(
-            "Timed out (%ss) while waiting for AVL windows to appear.",
-            self._timeout,
-        )
+        if self._geometry_window is None and self._geometry_pid is not None:
+            LOGGER.warning(
+                "Timed out (%ss) while waiting for geometry window (PID %s) to appear.",
+                self._timeout,
+                self._geometry_pid,
+            )
+        if self._trefftz_window is None and self._trefftz_pid is not None:
+            LOGGER.warning(
+                "Timed out (%ss) while waiting for Trefftz window (PID %s) to appear.",
+                self._timeout,
+                self._trefftz_pid,
+            )
 
 
 def _compute_target_rectangles() -> Tuple[WindowPlacement, WindowPlacement]:
