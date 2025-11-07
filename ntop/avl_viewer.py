@@ -37,8 +37,10 @@ import argparse
 import logging
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Optional
+
 
 try:
     import avl_window_control
@@ -152,21 +154,36 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         # Launch geometry plot instance
         LOGGER.debug("Launching geometry AVL instance: %s", launch_cmd)
-        geometry_process = subprocess.Popen(
-            launch_cmd,
-            cwd=orchestrator.working_directory,
-            stdin=subprocess.PIPE,
-            text=True,
-        )
+        try:
+            geometry_process = subprocess.Popen(
+                launch_cmd,
+                cwd=orchestrator.working_directory,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+        except Exception as exc:
+            raise RuntimeError(f"Failed to launch geometry AVL instance: {exc}") from exc
 
         # Launch Trefftz plot instance
         LOGGER.debug("Launching Trefftz AVL instance: %s", launch_cmd)
-        trefftz_process = subprocess.Popen(
-            launch_cmd,
-            cwd=orchestrator.working_directory,
-            stdin=subprocess.PIPE,
-            text=True,
-        )
+        try:
+            trefftz_process = subprocess.Popen(
+                launch_cmd,
+                cwd=orchestrator.working_directory,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+        except Exception as exc:
+            # Clean up geometry process if Trefftz fails
+            try:
+                geometry_process.terminate()
+            except Exception:
+                pass
+            raise RuntimeError(f"Failed to launch Trefftz AVL instance: {exc}") from exc
 
         # Start window management for both processes
         avl_window_control.manage_windows_async(
@@ -175,16 +192,20 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
 
         # Send commands to geometry process
-        if geometry_process.stdin and orchestrator.geometry_command_input:
-            geometry_process.stdin.write(orchestrator.geometry_command_input)
-            geometry_process.stdin.flush()
-            geometry_process.stdin.close()
+        try:
+            if geometry_process.stdin and orchestrator.geometry_command_input:
+                geometry_process.stdin.write(orchestrator.geometry_command_input)
+                geometry_process.stdin.flush()
+        except Exception as exc:
+            LOGGER.warning("Failed to send commands to geometry process: %s", exc)
 
         # Send commands to Trefftz process
-        if trefftz_process.stdin and orchestrator.trefftz_command_input:
-            trefftz_process.stdin.write(orchestrator.trefftz_command_input)
-            trefftz_process.stdin.flush()
-            trefftz_process.stdin.close()
+        try:
+            if trefftz_process.stdin and orchestrator.trefftz_command_input:
+                trefftz_process.stdin.write(orchestrator.trefftz_command_input)
+                trefftz_process.stdin.flush()
+        except Exception as exc:
+            LOGGER.warning("Failed to send commands to Trefftz process: %s", exc)
 
         LOGGER.info(
             "Both AVL instances launched. Geometry PID: %s, Trefftz PID: %s",
@@ -193,8 +214,68 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         LOGGER.info("Windows will remain open for viewing. Close manually when done.")
 
-        # Don't wait for processes to exit - they stay open for viewing
-        # The processes will remain running until the user closes the windows
+        # Give processes time to initialize and open windows
+        # Check that processes are still running after a brief delay
+        time.sleep(3.0)
+
+        # Verify processes are still alive
+        geometry_alive = geometry_process.poll() is None
+        trefftz_alive = trefftz_process.poll() is None
+
+        if not geometry_alive:
+            return_code = geometry_process.returncode
+            LOGGER.error(
+                "Geometry AVL process exited unexpectedly with code %s", return_code
+            )
+            raise RuntimeError(f"Geometry AVL process crashed with exit code {return_code}")
+
+        if not trefftz_alive:
+            return_code = trefftz_process.returncode
+            LOGGER.error(
+                "Trefftz AVL process exited unexpectedly with code %s", return_code
+            )
+            raise RuntimeError(f"Trefftz AVL process crashed with exit code {return_code}")
+
+        LOGGER.info("Both AVL processes are running successfully.")
+
+        LOGGER.info("Waiting for AVL windows to be closed (Ctrl+C to abort)...")
+        try:
+            geometry_return = geometry_process.wait()
+            LOGGER.info(
+                "Geometry AVL process exited with code %s", geometry_return
+            )
+        except KeyboardInterrupt:
+            LOGGER.info("Keyboard interrupt received; terminating AVL processes...")
+            geometry_process.terminate()
+            trefftz_process.terminate()
+            raise
+
+        if trefftz_process.poll() is None:
+            try:
+                trefftz_return = trefftz_process.wait()
+                LOGGER.info(
+                    "Trefftz AVL process exited with code %s", trefftz_return
+                )
+            except KeyboardInterrupt:
+                LOGGER.info(
+                    "Keyboard interrupt received while waiting for Trefftz process; terminating..."
+                )
+                trefftz_process.terminate()
+                raise
+        else:
+            trefftz_return = trefftz_process.returncode
+            LOGGER.info(
+                "Trefftz AVL process exited earlier with code %s", trefftz_return
+            )
+
+        if geometry_return not in (0, None):
+            raise RuntimeError(
+                f"Geometry AVL process exited with non-zero status {geometry_return}"
+            )
+        if trefftz_return not in (0, None):
+            raise RuntimeError(
+                f"Trefftz AVL process exited with non-zero status {trefftz_return}"
+            )
 
     except Exception as exc:  # pylint: disable=broad-except
         LOGGER.exception("Failed to launch AVL viewer: %s", exc)
