@@ -294,16 +294,26 @@ class AVLViewerOrchestrator:
                 )
             return self.avl_executable
 
-        candidate_paths = [
+        candidate_relatives = [
             Path("binw32/avl3.51-32.exe"),
             Path("bin/avl.exe"),
             Path("avl.exe"),
         ]
-        for path in candidate_paths:
-            if path.exists():
-                self.avl_executable = path.resolve()
-                LOGGER.info("Detected AVL executable at %s", self.avl_executable)
-                return self.avl_executable
+
+        search_roots = [Path.cwd(), Path(__file__).resolve().parent, Path(__file__).resolve().parent.parent]
+
+        for root in search_roots:
+            for relative in candidate_relatives:
+                path = (root / relative).resolve()
+                if path.exists():
+                    self.avl_executable = path
+                    LOGGER.info("Detected AVL executable at %s", self.avl_executable)
+                    return self.avl_executable
+
+        LOGGER.error(
+            "Unable to locate AVL executable. Searched relative to: %s",
+            ", ".join(str(root) for root in search_roots),
+        )
 
         raise FileNotFoundError(
             "Could not locate AVL executable. Please specify --avl-exe."
