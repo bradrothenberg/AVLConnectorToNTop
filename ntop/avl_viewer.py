@@ -217,7 +217,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         # Allow time for window manager to reposition windows before refreshing plots
         time.sleep(1.0)
 
-        geometry_refresh_commands = "\n\nG\nV\n90 90\n\n"
+        geometry_refresh_commands = "\n\n" + "\n".join([
+            "",
+            "G",
+            "V",
+            "-90 -90",
+            "",
+        ]) + "\n"
         trefftz_refresh_commands = "\nT\n\n"
 
         try:
