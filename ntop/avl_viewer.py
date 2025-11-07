@@ -186,7 +186,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             raise RuntimeError(f"Failed to launch Trefftz AVL instance: {exc}") from exc
 
         # Start window management for both processes
-        avl_window_control.manage_windows_async(
+        watcher = avl_window_control.manage_windows_async(
             geometry_pid=geometry_process.pid,
             trefftz_pid=trefftz_process.pid,
         )
@@ -214,19 +214,37 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         LOGGER.info("Windows will remain open for viewing. Close manually when done.")
 
+        if watcher is not None:
+            watcher_timeout = 5.0
+            deadline = time.time() + watcher_timeout
+
+            while time.time() < deadline:
+                if watcher.is_alive():
+                    time.sleep(0.1)
+                else:
+                    LOGGER.debug("AVL windows positioned before refresh commands are sent.")
+                    break
+            else:
+                LOGGER.warning(
+                    "Window positioning thread still running after %.1fs; proceeding",
+                    watcher_timeout,
+                )
+
         # Allow time for window manager to reposition windows before refreshing plots
         time.sleep(1.0)
 
         geometry_refresh_commands = "\n\n" + "\n".join([
             "",
+            "OPER",
             "G",
             "V",
             "-90 -90",
             "U",
             "",
         ]) + "\n"
-        trefftz_refresh_commands = "\nT\nU\n\n"
+        trefftz_refresh_commands = "\nOPER\nT\nU\n\n"
 
+        # geometry_refresh_commands expects us to be in OPER. send full sequence
         try:
             if geometry_process.stdin:
                 geometry_process.stdin.write(geometry_refresh_commands)
