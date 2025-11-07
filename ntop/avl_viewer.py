@@ -90,7 +90,7 @@ def parse_arguments(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--alpha",
         type=float,
-        default=0.0,
+        default=3.0,
         help="Angle of attack (degrees) for the initial operating point.",
     )
     parser.add_argument(
@@ -186,7 +186,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             raise RuntimeError(f"Failed to launch Trefftz AVL instance: {exc}") from exc
 
         # Start window management for both processes
-        avl_window_control.manage_windows_async(
+        watcher = avl_window_control.manage_windows_async(
             geometry_pid=geometry_process.pid,
             trefftz_pid=trefftz_process.pid,
         )
@@ -214,12 +214,38 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         LOGGER.info("Windows will remain open for viewing. Close manually when done.")
 
+        if watcher is not None:
+            watcher_timeout = 5.0
+            deadline = time.time() + watcher_timeout
+
+            while time.time() < deadline:
+                if watcher.is_alive():
+                    time.sleep(0.1)
+                else:
+                    LOGGER.debug("AVL windows positioned before refresh commands are sent.")
+                    break
+            else:
+                LOGGER.warning(
+                    "Window positioning thread still running after %.1fs; proceeding",
+                    watcher_timeout,
+                )
+
         # Allow time for window manager to reposition windows before refreshing plots
         time.sleep(1.0)
 
-        geometry_refresh_commands = "\n\nG\nV\n90 90\n\n"
-        trefftz_refresh_commands = "\nT\n\n"
+        geometry_refresh_commands = "\n\n" + "\n".join([
+            "",
+            "OPER",
+            "G",
+            "V",
+            "-90 -90",
+            "X",
+            "C",
+            "",
+        ]) + "\n"
+        trefftz_refresh_commands = "\nOPER\nT\nX\nS\n6.5\n\n"
 
+        # geometry_refresh_commands expects us to be in OPER. send full sequence
         try:
             if geometry_process.stdin:
                 geometry_process.stdin.write(geometry_refresh_commands)

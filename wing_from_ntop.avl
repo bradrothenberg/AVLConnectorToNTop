@@ -7,9 +7,9 @@ nTop Geometry
 !IYsym   IZsym   Zsym
  0       0       0.000
 !Sref    Cref    Bref
-212.301452     12.793769     23.868525
+247.022448     13.194354     23.868525
 !Xref    Yref    Zref
-8.889174     0.000000     0.513579
+7.566484     0.000000     0.498956
 
 SURFACE
 WING
@@ -18,79 +18,79 @@ WING
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-17.603604    -11.934263    1.254342    0.235717   0.000   3          1.000
+15.291599    -11.934263    1.254342    0.235723   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-16.805570    -10.983210    1.154382    3.469925   0.000   11          1.000
+13.833691    -10.196791    1.071726    6.303133   0.000   9          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-12.039598    -5.370418    0.564454    7.288957   0.000   7          1.000
+9.768393    -5.370418    0.564454    9.558256   0.000   7          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-6.497728    -1.736786    0.182544    14.957613   0.000   3          1.000
+5.902375    -1.677836    0.176348    15.604250   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-3.314368    -1.157857    0.121696    18.904348   0.000   3          1.000
+3.021200    -1.118557    0.117565    19.272351   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-1.507797    -0.578929    0.060848    20.760418   0.000   3          1.000
+1.353921    -0.559279    0.058783    20.902949   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-0.021935    0.000000    0.000000    22.400777   0.000   3          1.000
+0.021934    0.000000    0.000000    22.400776   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-1.507797    0.578929    0.060848    20.760418   0.000   3          1.000
+1.353921    0.559279    0.058783    20.902949   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-3.314368    1.157857    0.121696    18.904348   0.000   3          1.000
+3.021200    1.118557    0.117565    19.272351   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-6.497728    1.736786    0.182544    14.957613   0.000   7          1.000
+5.902375    1.677836    0.176348    15.604250   0.000   7          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-12.039598    5.370418    0.564454    7.288957   0.000   11          1.000
+9.768393    5.370418    0.564454    9.558256   0.000   9          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-16.805570    10.983210    1.154382    3.469925   0.000   3          1.000
+13.833691    10.196791    1.071726    6.303133   0.000   3          1.000
 NACA
 2412
 
 SECTION
 !Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-17.603604    11.934263    1.254342    0.235717   0.000   0          1.000
+15.291599    11.934263    1.254342    0.235723   0.000   0          1.000
 NACA
 2412
 

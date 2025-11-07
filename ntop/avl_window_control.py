@@ -53,7 +53,7 @@ def manage_windows_async(
     pid: Optional[int] = None,
     timeout: float = 60.0,
     poll_interval: float = 0.5,
-) -> None:
+) -> Optional[threading.Thread]:
     """
     Start a background watcher that repositions AVL graphics windows.
 
@@ -67,7 +67,7 @@ def manage_windows_async(
     """
     if not IS_WINDOWS:
         LOGGER.info("Window management is only supported on Windows; skipping.")
-        return
+        return None
 
     # Support legacy single-PID mode for backward compatibility
     if pid is not None:
@@ -80,7 +80,7 @@ def manage_windows_async(
 
     if geometry_pid is None and trefftz_pid is None:
         LOGGER.warning("No process IDs provided; unable to manage AVL windows.")
-        return
+        return None
 
     watcher = _WindowWatcher(
         geometry_pid=geometry_pid,
@@ -89,6 +89,7 @@ def manage_windows_async(
         poll_interval=poll_interval,
     )
     watcher.start()
+    return watcher
 
 
 class _WindowWatcher(threading.Thread):
