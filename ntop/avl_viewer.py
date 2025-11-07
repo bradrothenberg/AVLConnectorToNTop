@@ -90,7 +90,7 @@ def parse_arguments(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--alpha",
         type=float,
-        default=0.0,
+        default=3.0,
         help="Angle of attack (degrees) for the initial operating point.",
     )
     parser.add_argument(
@@ -239,10 +239,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             "G",
             "V",
             "-90 -90",
-            "U",
+            "X",
+            "C",
             "",
         ]) + "\n"
-        trefftz_refresh_commands = "\nOPER\nT\nU\n\n"
+        trefftz_refresh_commands = "\nOPER\nT\nX\nS\n6.5\n\n"
 
         # geometry_refresh_commands expects us to be in OPER. send full sequence
         try:
