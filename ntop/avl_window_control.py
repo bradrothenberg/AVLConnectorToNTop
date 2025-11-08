@@ -52,7 +52,7 @@ def manage_windows_async(
     trefftz_pid: Optional[int] = None,
     pid: Optional[int] = None,
     timeout: float = 60.0,
-    poll_interval: float = 0.5,
+    poll_interval: float = 0.1,
 ) -> Optional[threading.Thread]:
     """
     Start a background watcher that repositions AVL graphics windows.
@@ -109,6 +109,12 @@ class _WindowWatcher(threading.Thread):
         self._poll_interval = poll_interval
         self._geometry_window: Optional[int] = None
         self._trefftz_window: Optional[int] = None
+        self._positioned_event = threading.Event()
+
+    @property
+    def positioned_event(self) -> threading.Event:
+        """Event raised when both windows have been positioned (or the watcher exits)."""
+        return self._positioned_event
 
     def run(self) -> None:  # pragma: no cover - involves GUI interaction
         LOGGER.debug(
@@ -164,6 +170,7 @@ class _WindowWatcher(threading.Thread):
 
             if geometry_done and trefftz_done:
                 LOGGER.debug("All AVL windows have been positioned.")
+                self._positioned_event.set()
                 return
 
             time.sleep(self._poll_interval)
@@ -180,6 +187,7 @@ class _WindowWatcher(threading.Thread):
                 self._timeout,
                 self._trefftz_pid,
             )
+        self._positioned_event.set()
 
 
 def _compute_target_rectangles() -> Tuple[WindowPlacement, WindowPlacement]:

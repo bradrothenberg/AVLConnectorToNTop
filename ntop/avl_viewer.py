@@ -277,21 +277,19 @@ def main(argv: Optional[list[str]] = None) -> int:
             trefftz_pid=trefftz_process.pid,
         )
 
-        # Send commands to geometry process
-        try:
-            if geometry_process.stdin and orchestrator.geometry_command_input:
-                geometry_process.stdin.write(orchestrator.geometry_command_input)
-                geometry_process.stdin.flush()
-        except Exception as exc:
-            LOGGER.warning("Failed to send commands to geometry process: %s", exc)
+        def _send_commands(process: subprocess.Popen[str], commands: str, label: str) -> None:
+            if not commands:
+                return
+            try:
+                if process.stdin:
+                    process.stdin.write(commands)
+                    process.stdin.flush()
+            except Exception as exc:  # pragma: no cover - defensive
+                LOGGER.warning("Failed to send %s commands: %s", label, exc)
 
-        # Send commands to Trefftz process
-        try:
-            if trefftz_process.stdin and orchestrator.trefftz_command_input:
-                trefftz_process.stdin.write(orchestrator.trefftz_command_input)
-                trefftz_process.stdin.flush()
-        except Exception as exc:
-            LOGGER.warning("Failed to send commands to Trefftz process: %s", exc)
+        # Send initial command scripts
+        _send_commands(geometry_process, orchestrator.geometry_command_input or "", "geometry setup")
+        _send_commands(trefftz_process, orchestrator.trefftz_command_input or "", "Trefftz setup")
 
         LOGGER.info(
             "Both AVL instances launched. Geometry PID: %s, Trefftz PID: %s",
@@ -300,24 +298,29 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         LOGGER.info("Windows will remain open for viewing. Close manually when done.")
 
+        watcher_positioned = False
         if watcher is not None:
-            watcher_timeout = 5.0
-            deadline = time.time() + watcher_timeout
+            positioned_event = getattr(watcher, "positioned_event", None)
+            if positioned_event is not None:
+                watcher_positioned = positioned_event.wait(timeout=5.0)
+            else:
+                LOGGER.debug("Window watcher lacks positioned_event; falling back to thread join polling.")
+                watcher.join(timeout=5.0)
+                watcher_positioned = not watcher.is_alive()
 
-            while time.time() < deadline:
-                if watcher.is_alive():
-                    time.sleep(0.1)
-                else:
-                    LOGGER.debug("AVL windows positioned before refresh commands are sent.")
-                    break
+            if watcher_positioned:
+                LOGGER.debug("Window positioning completed; continuing without additional delay.")
             else:
                 LOGGER.warning(
                     "Window positioning thread still running after %.1fs; proceeding",
-                    watcher_timeout,
+                    5.0,
                 )
 
         # Allow time for window manager to reposition windows before refreshing plots
-        time.sleep(1.0)
+        if watcher_positioned:
+            time.sleep(0.2)
+        else:
+            time.sleep(0.7)
 
         geometry_refresh_commands = "\n\n" + "\n".join([
             "",
@@ -332,25 +335,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         trefftz_refresh_commands = "\nOPER\nT\nX\nS\n6.5\n\n"
 
         # geometry_refresh_commands expects us to be in OPER. send full sequence
-        try:
-            if geometry_process.stdin:
-                geometry_process.stdin.write(geometry_refresh_commands)
-                geometry_process.stdin.flush()
-        except Exception as exc:
-            LOGGER.warning("Failed to refresh geometry plot after resize: %s", exc)
+        _send_commands(geometry_process, "\n", "geometry prompt")
 
-        time.sleep(0.3)
+        for attempt in range(2):
+            _send_commands(geometry_process, geometry_refresh_commands, "geometry refresh")
+            if attempt < 1:
+                time.sleep(0.2)
 
-        try:
-            if trefftz_process.stdin:
-                trefftz_process.stdin.write(trefftz_refresh_commands)
-                trefftz_process.stdin.flush()
-        except Exception as exc:
-            LOGGER.warning("Failed to refresh Trefftz plot after resize: %s", exc)
+        time.sleep(0.2)
+        _send_commands(trefftz_process, trefftz_refresh_commands, "Trefftz refresh")
 
         # Give processes time to initialize and open windows
         # Check that processes are still running after a brief delay
-        time.sleep(3.0)
+        time.sleep(1.5)
 
         # Verify processes are still alive
         geometry_alive = geometry_process.poll() is None
