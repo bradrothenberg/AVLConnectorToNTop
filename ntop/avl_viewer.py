@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 import subprocess
 import sys
 import time
@@ -57,6 +58,71 @@ except ImportError:
 
 
 LOGGER = logging.getLogger("avl_viewer")
+NEUTRAL_POINT_PATTERN = re.compile(
+    r"Neutral point\s*(?::\s*)?(?:Xnp|x/c)\s*=\s*([-+0-9.eE]+)"
+)
+
+
+def capture_and_save_neutral_point(
+    stability_file: Path,
+    summary_file: Path,
+    timeout: float = 10.0,
+) -> Optional[float]:
+    """Wait for AVL to write the stability file, extract the neutral point, and save it."""
+    deadline = time.time() + timeout
+    last_exception: Optional[Exception] = None
+
+    while time.time() < deadline:
+        if stability_file.exists():
+            try:
+                text = stability_file.read_text(encoding="utf-8", errors="ignore")
+            except OSError as exc:
+                last_exception = exc
+                time.sleep(0.2)
+                continue
+
+            match = NEUTRAL_POINT_PATTERN.search(text)
+            if match is not None:
+                try:
+                    neutral_value = float(match.group(1))
+                except ValueError as exc:  # pragma: no cover - defensive
+                    last_exception = exc
+                    time.sleep(0.2)
+                    continue
+
+                try:
+                    summary_file.write_text(
+                        f"Xnp\n{neutral_value:.6f}\n",
+                        encoding="utf-8",
+                    )
+                except OSError as exc:  # pragma: no cover - defensive
+                    LOGGER.warning(
+                        "Failed to write neutral point summary %s: %s",
+                        summary_file,
+                        exc,
+                    )
+                else:
+                    LOGGER.info(
+                        "Neutral point %.6f saved to %s",
+                        neutral_value,
+                        summary_file,
+                    )
+                return neutral_value
+
+        time.sleep(0.2)
+
+    if last_exception is not None:
+        LOGGER.debug(
+            "Encountered error while waiting for stability file %s: %s",
+            stability_file,
+            last_exception,
+        )
+    LOGGER.warning(
+        "Timed out after %.1fs waiting for neutral point in %s",
+        timeout,
+        stability_file,
+    )
+    return None
 
 
 def parse_arguments(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -285,6 +351,15 @@ def main(argv: Optional[list[str]] = None) -> int:
             raise RuntimeError(f"Trefftz AVL process crashed with exit code {return_code}")
 
         LOGGER.info("Both AVL processes are running successfully.")
+
+        if (
+            orchestrator.stability_file is not None
+            and orchestrator.neutral_point_summary is not None
+        ):
+            capture_and_save_neutral_point(
+                orchestrator.stability_file,
+                orchestrator.neutral_point_summary,
+            )
 
         LOGGER.info("Waiting for AVL windows to be closed (Ctrl+C to abort)...")
         try:

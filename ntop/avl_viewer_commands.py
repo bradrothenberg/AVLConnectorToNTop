@@ -45,6 +45,8 @@ class AVLViewerOrchestrator:
     geometry_command_input: Optional[str] = None
     trefftz_command_script: Optional[Path] = None
     trefftz_command_input: Optional[str] = None
+    stability_file: Optional[Path] = None
+    neutral_point_summary: Optional[Path] = None
 
     def prepare(self) -> Path:
         """Prepare all assets required to launch AVL."""
@@ -58,6 +60,8 @@ class AVLViewerOrchestrator:
         self.command_script = self.output_dir / f"{base_name}.commands"
         self.geometry_command_script = self.output_dir / f"{base_name}_geometry.commands"
         self.trefftz_command_script = self.output_dir / f"{base_name}_trefftz.commands"
+        self.stability_file = self.output_dir / f"{base_name}.st"
+        self.neutral_point_summary = self.output_dir / "Xnp.csv"
 
         self._generate_run_file()
         self.command_input = self._generate_command_script(base_name)
@@ -221,15 +225,28 @@ class AVLViewerOrchestrator:
             "#",
             "1",
             "X",
-            "G",
-            "V",
-            "-90 -90",
-            "X",
-            "C",
-            "",
-            "T",
-            "X",
         ]
+
+        if self.stability_file is not None:
+            command_lines.extend(
+                [
+                    "ST",
+                    self.stability_file.name,
+                ]
+            )
+
+        command_lines.extend(
+            [
+                "G",
+                "V",
+                "-90 -90",
+                "X",
+                "C",
+                "",
+                "T",
+                "X",
+            ]
+        )
 
         command_text = "\n".join(command_lines) + "\n"
         self.command_script.write_text(command_text, encoding="utf-8")
@@ -251,13 +268,23 @@ class AVLViewerOrchestrator:
             "#",
             "1",
             "X",
-            "G",
-            "V",
-            "-90 -90",
-            "X",
-            "C",
-            "",
         ]
+
+        if self.stability_file is None:
+            raise RuntimeError("Stability file path not initialised.")
+
+        command_lines.extend(
+            [
+                "ST",
+                self.stability_file.name,
+                "G",
+                "V",
+                "-90 -90",
+                "X",
+                "C",
+                "",
+            ]
+        )
 
         command_text = "\n".join(command_lines) + "\n"
         self.geometry_command_script.write_text(command_text, encoding="utf-8")
