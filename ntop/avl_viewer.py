@@ -38,6 +38,7 @@ import logging
 import re
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -123,6 +124,25 @@ def capture_and_save_neutral_point(
         stability_file,
     )
     return None
+
+
+def schedule_neutral_point_capture(
+    stability_file: Optional[Path],
+    summary_file: Optional[Path],
+) -> Optional[threading.Thread]:
+    """Launch a background task to capture the neutral point without blocking."""
+    if stability_file is None or summary_file is None:
+        return None
+
+    thread = threading.Thread(
+        target=capture_and_save_neutral_point,
+        args=(stability_file, summary_file),
+        kwargs={"timeout": 10.0},
+        name="NeutralPointCapture",
+    )
+    thread.daemon = True
+    thread.start()
+    return thread
 
 
 def parse_arguments(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -352,14 +372,10 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         LOGGER.info("Both AVL processes are running successfully.")
 
-        if (
-            orchestrator.stability_file is not None
-            and orchestrator.neutral_point_summary is not None
-        ):
-            capture_and_save_neutral_point(
-                orchestrator.stability_file,
-                orchestrator.neutral_point_summary,
-            )
+        capture_thread = schedule_neutral_point_capture(
+            orchestrator.stability_file,
+            orchestrator.neutral_point_summary,
+        )
 
         LOGGER.info("Waiting for AVL windows to be closed (Ctrl+C to abort)...")
         try:
@@ -390,6 +406,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             LOGGER.info(
                 "Trefftz AVL process exited earlier with code %s", trefftz_return
             )
+
+        if capture_thread is not None:
+            capture_thread.join(timeout=1.0)
 
         if geometry_return not in (0, None):
             raise RuntimeError(
